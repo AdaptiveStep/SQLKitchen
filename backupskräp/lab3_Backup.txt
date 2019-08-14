@@ -1,0 +1,126 @@
+  1: Elements for the over 8300 meter mountain
+
+
+let $s := doc("../LABBAR/LAB3/monsters.xml")
+
+for $m in $s/mountains/range/mountain
+where $m[@height > 8300]
+
+return $m
+
+(byt ut return mot return <mountains>{$m/@height}</mountains> för att visa att det är sant)
+
+--------------------
+alternativt 
+  1:
+
+let $s := doc("../LABBAR/LAB3/monsters.xml"),
+    $q := (
+          for $k in $s/mountains/range/mountain
+          where $k[@height > 8500]
+          return $k
+          )
+return distinct-values($q/@name)
+
+-------------------------------------------------------------------------------------------
+
+  2: Names of mountains climbed in the winter
+
+let $s := doc("../LABBAR/LAB3/monsters.xml"),
+    $q := (
+          for $k in $s/mountains/range/mountain
+          where count($k/winter/member) > 0
+          return $k
+          )
+return $q/data(@name)
+
+-------------------------------------------------------------------------------------------
+
+  3: Names of mountains in the Himalayan mountain range
+
+let $s := doc("../LABBAR/LAB3/monsters.xml"),
+    $q := (
+          for $k in $s/mountains/range
+          where $k[@name = "Himalayan"]
+          return $k
+          )
+return data($q/mountain/@name)
+
+-------------------------------------------------------------------------------------------
+
+  4: Names of mountains at least partially within Nepal
+
+let $s := doc("../LABBAR/LAB3/monsters.xml"),
+    $q := (
+          for $k in $s/mountains/range/mountain
+          where $k/country = "Nepal"
+          return $k
+          )
+return $q/data(@name)
+
+
+-------------------------------------------------------------------------------------------
+
+   5:  Elements for teams with more than 4 members
+
+let $s := doc("../LABBAR/LAB3/monsters.xml")/mountains/range/mountain,
+    $m := (
+          for $k in $s
+          return
+                if (count($k/first/member) > 2)
+                then <firsts mount ="{$k/@name}" date ="{$k/first/@date}"> {$k/first/member} </firsts>
+                else ()),
+    $b := (
+          for $c in $s
+          return
+                if (count($c/winter/member) > 2)
+                then <winterteam mount ="{$c/@name}" date ="{$c/first/@date}">{$c/winter/member}</winterteam>
+                else())
+                        
+                        
+let $co := (
+           ($m | $b)
+)
+
+return $co
+
+
+-------------------------------------------------------------------------------------------
+
+   6: Names of mountains ordered by height
+
+let $s := doc("../LABBAR/LAB3/monsters.xml")/mountains/range/mountain
+for $n in $s
+order by $n/@height descending
+return data($n/@name)
+
+alternativt:::
+
+let $s := doc("../LABBAR/LAB3/monsters.xml")/mountains/range/mountain
+for $n in $s
+order by $n/@height descending
+return <mountain name = "{$n/@name}" height = "{$n/@height}"> </mountain>
+
+-------------------------------------------------------------------------------------------
+
+   7:  Names of mountains not yet climbed in winter
+
+let $s := doc("../LABBAR/LAB3/monsters.xml")/mountains/range/mountain
+for $n in $s
+where count( $n/winter/member ) <1
+order by count($n/deaths) descending
+return <mountain name = "{$n/@name}" deaths = "{$n/deaths}"> </mountain>
+
+-------------------------------------------------------------------------------------------
+
+
+   8:  Names of all team members, on all expeditions, ordered alphabetically, with no duplicates
+
+let $s := doc("../LABBAR/LAB3/monsters.xml")/mountains/range/mountain
+let $m := (
+          for $n in $s//member
+          return $n
+          )
+for $k in $m
+order by data($k)
+return distinct-values(($k)) || "," 

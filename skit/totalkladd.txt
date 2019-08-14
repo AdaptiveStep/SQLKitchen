@@ -1,0 +1,28 @@
+	mising items: 
+(SELECT item
+	FROM recipeitems, unnest(string_to_array('Mexican Fried Rice, Mushroom Quesadillas ,Broccoli Stir Fry', ',')) as selectedname
+	WHERE selectedname = recipeitems.name
+	GROUP BY recipeitems.item) 
+
+EXCEPT
+	(SELECT item FROM kitchensum)
+
+
+           unknown qty:
+(SELECT item
+	FROM recipeitems, unnest(string_to_array('Mexican Fried Rice, Mushroom Quesadillas ,Broccoli Stir Fry', ',')) as selectedname
+	WHERE selectedname = recipeitems.name
+	GROUP BY recipeitems.item) 
+
+INTERSECT
+	(SELECT item FROM kitchensum WHERE qty IS NULL)
+
+
+	items you have, uncalculated difference:
+(SELECT item
+	FROM recipeitems, unnest(string_to_array('Mexican Fried Rice, Mushroom Quesadillas ,Broccoli Stir Fry', ',')) as selectedname
+	WHERE selectedname = recipeitems.name
+	GROUP BY recipeitems.item) 
+
+INTERSECT
+	(SELECT item FROM kitchensum WHERE qty > 0)

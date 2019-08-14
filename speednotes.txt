@@ -1,0 +1,98 @@
+######## summerar alla saker som behövs för recepten
+
+SELECT item
+	FROM recipeitems, unnest(string_to_array('Mexican Fried Rice, Mushroom Quesadillas ,Broccoli Stir Fry', ',')) as selectedname
+	WHERE selectedname = recipeitems.name
+	GROUP BY recipeitems.item
+
+
+------------------------------------------------------------------
+
+######### VISAR VILKA SAKER SOM FATTAS HELT I KÖKET
+
+(SELECT item
+	FROM recipeitems, unnest(string_to_array('Mexican Fried Rice, Mushroom Quesadillas ,Broccoli Stir Fry', ',')) as selectedname
+	WHERE selectedname = recipeitems.name
+	GROUP BY recipeitems.item) 
+
+EXCEPT
+	(SELECT item FROM kitchensum)
+	
+--------------------------------------------------------------------
+####### Visar vilka saker man har, då man har mer än noll av en sak.
+(SELECT item
+	FROM recipeitems, unnest(string_to_array('Mexican Fried Rice, Mushroom Quesadillas ,Broccoli Stir Fry', ',')) as selectedname
+	WHERE selectedname = recipeitems.name
+	GROUP BY recipeitems.item) 
+
+INTERSECT
+	(SELECT item FROM kitchensum WHERE qty > 0)	
+	
+	
+--------------------------------------------------------------------
+	
+##### Visar mängden som behövs, då man har för lite, men lite iaf.
+
+SELECT recipesum.item AS recipeitem, recipesum.sum AS neededqty, kitchensum.qty AS havingqty, (recipesum.sum -kitchensum.qty) AS difference, kitchensum.unit
+FROM	(	(SELECT item
+		FROM recipeitems, unnest(string_to_array('Mexican Fried Rice, Mushroom Quesadillas ,Broccoli Stir Fry', ',')) as selectedname
+		WHERE selectedname = recipeitems.name
+		GROUP BY recipeitems.item)
+
+		INTERSECT
+		(SELECT item FROM kitchensum)
+	) AS itemdiffset,
+
+	(	SELECT item, sum(qty)
+		FROM recipeitems, unnest(string_to_array('Mexican Fried Rice, Mushroom Quesadillas ,Broccoli Stir Fry', ',')) as selectedname
+		WHERE selectedname = recipeitems.name
+		GROUP BY recipeitems.item
+	) AS recipesum, kitchensum
+	
+WHERE 
+	kitchensum.item = itemdiffset.item 
+	AND kitchensum.item = recipesum.item 
+	AND (kitchensum.qty <= recipesum.sum OR kitchensum.qty IS NULL)
+	
+	
+	--------------------------------
+	
+	
+######## VISAR KOMPLETT BEHOVS TABELL 
+(
+SELECT recipesum.item AS recipeitem, recipesum.sum AS neededqty, kitchensum.qty AS havingqty, (kitchensum.qty-recipesum.sum) AS difference, kitchensum.unit
+FROM	(	(SELECT item
+		FROM recipeitems, unnest(string_to_array('Mexican Fried Rice,Mushroom Quesadillas,Broccoli Stir Fry', ',')) as selectedname
+		WHERE selectedname = recipeitems.name
+		GROUP BY recipeitems.item)
+
+		INTERSECT
+		(SELECT item FROM kitchensum)
+	) AS itemdiffset,
+
+	(	SELECT item, sum(qty)
+		FROM recipeitems, unnest(string_to_array('Mexican Fried Rice,Mushroom Quesadillas,Broccoli Stir Fry', ',')) as selectedname
+		WHERE selectedname = recipeitems.name
+		GROUP BY recipeitems.item
+	) AS recipesum, kitchensum
+	
+WHERE 
+	kitchensum.item = itemdiffset.item 
+	AND kitchensum.item = recipesum.item 
+	AND (kitchensum.qty < recipesum.sum OR kitchensum.qty IS NULL)
+)
+	UNION
+(SELECT ungrouped.item AS recipeitem, ungrouped.sum AS needqty, 0 AS havingqty, (0 - ungrouped.sum) AS difference, items.unit
+FROM
+	(SELECT recipeitems.item, sum(qty)
+	FROM ((SELECT item
+		FROM recipeitems, unnest(string_to_array('Mexican Fried Rice,Mushroom Quesadillas,Broccoli Stir Fry', ',')) as selectedname
+		WHERE selectedname = recipeitems.name
+		GROUP BY recipeitems.item) 
+
+			EXCEPT
+		(SELECT item FROM kitchensum)) AS missingitems, recipeitems
+	WHERE recipeitems.item = missingitems.item
+	GROUP BY recipeitems.item) AS ungrouped, items
+WHERE ungrouped.item = items.name
+)	
